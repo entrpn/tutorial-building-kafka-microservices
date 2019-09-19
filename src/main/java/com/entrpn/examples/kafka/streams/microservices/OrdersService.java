@@ -1,26 +1,38 @@
 package com.entrpn.examples.kafka.streams.microservices;
 
 import com.entrpn.examples.kafka.streams.microservices.dtos.Order;
+import com.entrpn.examples.kafka.streams.microservices.models.HostStoreInfo;
 import com.entrpn.examples.kafka.streams.microservices.util.MicroserviceUtils;
 import org.apache.kafka.clients.producer.*;
+import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.kstream.Consumed;
+import org.apache.kafka.streams.kstream.Materialized;
+import org.apache.kafka.streams.kstream.Predicate;
+import org.apache.kafka.streams.state.QueryableStoreTypes;
+import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
 import org.eclipse.jetty.server.Server;
 import org.glassfish.jersey.server.ManagedAsync;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.QueryParam;
+import javax.ws.rs.*;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Response;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import static com.entrpn.examples.kafka.streams.microservices.Schemas.Topics.ORDERS;
+import static com.entrpn.examples.kafka.streams.microservices.util.ProducerUtils.startProducer;
+import static com.entrpn.examples.kafka.streams.microservices.util.StreamsUtils.baseStreamsConfig;
 
 @Path("v1")
 public class OrdersService implements Service {
@@ -29,6 +41,7 @@ public class OrdersService implements Service {
 
     private final String SERVICE_APP_ID = getClass().getSimpleName();
     private static final String CALL_TIMEOUT = "10000";
+    private static final String ORDERS_STORE_NAME = "orders-store";
 
     private final String host;
     private int port;
@@ -36,9 +49,27 @@ public class OrdersService implements Service {
 
     private KafkaProducer<String, Order> producer;
 
+    private MetadataService metadataService;
+    private KafkaStreams streams = null;
+
+    //In a real implementation we would need to (a) support outstanding requests for the same Id/filter from
+    // different users and (b) periodically purge old entries from this map.
+    private final Map<String, FilteredResponse<String, Order>> outstandingRequests = new ConcurrentHashMap<>();
+
     public OrdersService(final String host, final int port) {
         this.host = host;
         this.port = port;
+    }
+
+    @GET
+    @Path("/orders/{id}")
+    public void getOrder(@PathParam("id") final String id,
+                         @QueryParam("timeout") @DefaultValue(CALL_TIMEOUT) final Long timeout,
+                         @Suspended final AsyncResponse response) {
+        MicroserviceUtils.setTimeout(timeout, response);
+
+        fetchLocal(id, response, (k, v) -> true);
+
     }
 
     @POST
@@ -64,12 +95,22 @@ public class OrdersService implements Service {
         port = jettyServer.getURI().getPort(); //update port, in case port was zero
 
         producer = startProducer(bootstrapServers, ORDERS);
+        streams = startKStreams(bootstrapServers);
 
         log.info("Started Service " + getClass().getSimpleName());
     }
 
     @Override
     public void stop() {
+
+        if (streams != null) {
+            streams.close();
+        }
+
+        if (producer != null) {
+            producer.close();
+        }
+
         if (jettyServer != null) {
             try {
                 jettyServer.stop();
@@ -77,22 +118,90 @@ public class OrdersService implements Service {
                 e.printStackTrace();
             }
         }
+
         log.info("Stopped Service");
     }
 
-    private static <T> KafkaProducer startProducer(final String bootstrapServers,
-                                                   final Schemas.Topic<String, T> topic) {
-        final Properties producerConfig = new Properties();
+    /**
+     * Fetch the order from the local materialized view
+     *
+     * @param id            ID to fetch
+     * @param asyncResponse the response to call once completed
+     * @param predicate     a filter that for this fetch, so for example we might fetch only VALIDATED
+     *                      orders.
+     */
+    private void fetchLocal(final String id, final AsyncResponse asyncResponse, final Predicate<String, Order> predicate) {
+        log.info("running GET on this node");
+        final Order order = ordersStore().get(id);
+        if (order == null || !predicate.test(id, order)) {
+            asyncResponse.resume("Not found");
+        } else {
+            asyncResponse.resume(order);
+        }
+    }
 
-        producerConfig.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
-        producerConfig.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true");
-        producerConfig.put(ProducerConfig.RETRIES_CONFIG, String.valueOf(Integer.MAX_VALUE));
-        producerConfig.put(ProducerConfig.ACKS_CONFIG, "all");
-        producerConfig.put(ProducerConfig.CLIENT_ID_CONFIG, "order-sender");
+    private ReadOnlyKeyValueStore<String, Order> ordersStore() {
+        ReadOnlyKeyValueStore store = streams.store(ORDERS_STORE_NAME, QueryableStoreTypes.keyValueStore());
+        store.
+        log.debug("Store number of entries: " + store.approximateNumEntries());
 
-        return new KafkaProducer(producerConfig,
-                topic.getKeySerde().serializer(),
-                topic.getValueSerde().serializer());
+        return store;
+
+    }
+
+    private Properties config(final String bootstrapServers) {
+        final Properties props = baseStreamsConfig(bootstrapServers, "/tmp/kafka-streams", SERVICE_APP_ID);
+        props.put(StreamsConfig.APPLICATION_SERVER_CONFIG, host + ":" + port);
+        return props;
+    }
+
+    private KafkaStreams startKStreams(final String bootstrapServers) {
+        final KafkaStreams streams = new KafkaStreams(
+                createOrdersMaterializedView().build(),
+                config(bootstrapServers));
+
+        metadataService = new MetadataService(streams);
+        //streams.cleanUp(); // don't do this in prod as it clears your state stores
+
+        final CountDownLatch startLatch = new CountDownLatch(1);
+        streams.setStateListener(((newState, oldState) -> {
+            if (newState == KafkaStreams.State.RUNNING && oldState != KafkaStreams.State.RUNNING) {
+                startLatch.countDown();
+            }
+        }));
+        streams.start();
+
+
+        try {
+            if (!startLatch.await(60, TimeUnit.SECONDS)) {
+                throw new RuntimeException("Streams never finished rebalancing on startup");
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        return streams;
+
+    }
+
+    /**
+     * Create a table of orders which we can query. When the table is updated
+     * we check to see if there is an outstanding HTTP GET request waiting to be
+     * fulfilled.
+     */
+    private StreamsBuilder createOrdersMaterializedView() {
+        final StreamsBuilder builder = new StreamsBuilder();
+        builder.table(ORDERS.name(), Consumed.with(ORDERS.keySerde(), ORDERS.valueSerde()), Materialized.as(ORDERS_STORE_NAME))
+                .toStream().foreach(this::maybeCompleteLongPollGet);
+        return builder;
+    }
+
+    private void maybeCompleteLongPollGet(final String id, final Order order) {
+        log.debug("maybeCompleteLongPollGet");
+        final FilteredResponse<String, Order> callback = outstandingRequests.get(id);
+        if (callback != null && callback.predicate.test(id, order)) {
+            callback.asyncResponse.resume(order);
+        }
     }
 
     private Callback callback(final AsyncResponse response, final String orderId) {
@@ -122,5 +231,15 @@ public class OrdersService implements Service {
         final OrdersService service = new OrdersService(restHostname, restPort == null ? 0 : Integer.valueOf(restPort));
         service.start(bootstrapServers, "/tmp/kafka-streams");
 
+    }
+
+    class FilteredResponse<K, V> {
+        private final AsyncResponse asyncResponse;
+        private final Predicate<K, V> predicate;
+
+        FilteredResponse(final AsyncResponse asyncResponse, final Predicate<K, V> predicate) {
+            this.asyncResponse = asyncResponse;
+            this.predicate = predicate;
+        }
     }
 }

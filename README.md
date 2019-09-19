@@ -72,3 +72,9 @@ __Optional:__ start the schema registry (we will use this in a later example)
 You should receive a message through your console consumer as follows:
 
 {"id":"1","customerId":1,"state":"CREATED","product":"JUMPERS","quantity":2,"price":12.99} 
+
+### Example_2 - Create local state store 
+
+1. Make sure you are running zookeeper and kafka from example_1 and the orders topic is created.
+
+2. 

@@ -26,11 +26,11 @@ public class Schemas {
             return name;
         }
 
-        public Serde<K> getKeySerde() {
+        public Serde<K> keySerde() {
             return keySerde;
         }
 
-        public Serde<V> getValueSerde() {
+        public Serde<V> valueSerde() {
             return valueSerde;
         }
 
