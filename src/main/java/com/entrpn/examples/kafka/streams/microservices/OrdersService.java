@@ -2,18 +2,17 @@ package com.entrpn.examples.kafka.streams.microservices;
 
 import com.entrpn.examples.kafka.streams.microservices.dtos.Order;
 import com.entrpn.examples.kafka.streams.microservices.util.MicroserviceUtils;
+import com.entrpn.examples.kafka.streams.microservices.util.MonitoringInterceptorUtils;
 import org.apache.kafka.clients.producer.*;
 import org.eclipse.jetty.server.Server;
 import org.glassfish.jersey.server.ManagedAsync;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.QueryParam;
+import javax.ws.rs.*;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import java.net.URI;
@@ -44,10 +43,11 @@ public class OrdersService implements Service {
     @POST
     @ManagedAsync
     @Path("/orders")
+    @Consumes(MediaType.APPLICATION_JSON)
     public void createOrder(final Order order,
                             @QueryParam("timeout") @DefaultValue(CALL_TIMEOUT) final Long timeout,
                             @Suspended final AsyncResponse response) {
-        log.debug("createOrder");
+        log.info("createOrder");
         MicroserviceUtils.setTimeout(timeout, response);
 
         try {
@@ -89,6 +89,7 @@ public class OrdersService implements Service {
         producerConfig.put(ProducerConfig.RETRIES_CONFIG, String.valueOf(Integer.MAX_VALUE));
         producerConfig.put(ProducerConfig.ACKS_CONFIG, "all");
         producerConfig.put(ProducerConfig.CLIENT_ID_CONFIG, "order-sender");
+        MonitoringInterceptorUtils.maybeConfigureInterceptorsProducer(producerConfig);
 
         return new KafkaProducer(producerConfig,
                 topic.getKeySerde().serializer(),

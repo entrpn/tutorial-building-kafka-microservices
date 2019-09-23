@@ -71,4 +71,35 @@ __Optional:__ start the schema registry (we will use this in a later example)
 
 You should receive a message through your console consumer as follows:
 
-{"id":"1","customerId":1,"state":"CREATED","product":"JUMPERS","quantity":2,"price":12.99} 
+```json
+{"id":"1","customerId":1,"state":"CREATED","product":"JUMPERS","quantity":2,"price":12.99}
+``` 
+
+### Example_2 Create order validator consumer and producer
+
+Create OrderDetailsService that listens to orders topic and validates order. Produces message to orders-validated topic with a pass/fail criteria.
+The json deserializer is created in this step. Also start using enums in the messages instead of only primitives.
+
+1. Run all the steps in Example_1
+
+2. Create order-validations topic
+
+```./bin/kafka-topics --create --zookeeper localhost:2181 --partitions 1 --replication-factor 1 --topic order-validations```
+
+3. Run the OrderDetailsService:
+
+```mvn exec:java -f pom.xml -Dexec.mainClass=com.entrpn.examples.kafka.streams.microservices.OrderDetailsService -Dexec.args="localhost:9092 http://localhost:8081"```
+
+3. Subscribe to the order-validations topic and view validationResult
+
+```./bin/kafka-console-consumer --bootstrap-server localhost:9092 --topic order-validations --from-beginning```
+
+You should see a message through the console:
+
+```json
+{"orderId":"545454","checkType":"ORDER_DETAILS_CHECK","validationResult":"PASS"}
+```
+
+4. Send more requests to view more results:
+
+```curl -d '{"id":"1","customerId":"1","state":"CREATED","product":"JUMPERS","quantity":"2","price":"12.99"}' -X POST http://10.70.29.54:26601/v1/orders --header "Content-Type: application/json"```

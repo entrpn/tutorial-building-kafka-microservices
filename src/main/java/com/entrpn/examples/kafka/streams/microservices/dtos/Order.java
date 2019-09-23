@@ -3,8 +3,8 @@ package com.entrpn.examples.kafka.streams.microservices.dtos;
 public class Order {
 
     private String id;
-    private long customerId;
-    private String state;
+    private Long customerId;
+    private OrderState state;
     private String product;
     private int quantity;
     private double price;
@@ -12,10 +12,10 @@ public class Order {
     public Order() {
     }
 
-    public Order(final String id, final long customerId, final String state, final String product, final int quantity, final double price) {
+    public Order(final String id, final Long customerId, final String state, final String product, final int quantity, final double price) {
         this.id = id;
         this.customerId = customerId;
-        this.state = state;
+        this.state = OrderState.valueOf(state);
         this.product = product;
         this.quantity = quantity;
         this.price = price;
@@ -29,20 +29,20 @@ public class Order {
         this.id = id;
     }
 
-    public long getCustomerId() {
+    public Long getCustomerId() {
         return customerId;
     }
 
-    public void setCustomerId(final long customerId) {
+    public void setCustomerId(final Long customerId) {
         this.customerId = customerId;
     }
 
-    public String getState() {
+    public OrderState getState() {
         return state;
     }
 
     public void setState(final String state) {
-        this.state = state;
+        this.state = OrderState.valueOf(state);
     }
 
     public String getProduct() {
