@@ -105,7 +105,7 @@ You should see a message through the console:
 ```curl -d '{"id":"1","customerId":"1","state":"CREATED","product":"JUMPERS","quantity":"2","price":"12.99"}' -X POST http://10.70.29.54:26601/v1/orders --header "Content-Type: application/json"```
 
 
-#### Example_3a
+### Example_3a
 
 Create an email service that joins the topics orders and payments and joins on the orderId. Prints the contents of both topics.
 In the next excercise (Example_3b), we will join with the customers topic and simulate sending an email to a customer once the payment for an order (again, joined by orderId) is completed.
