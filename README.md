@@ -103,3 +103,40 @@ You should see a message through the console:
 4. Send more requests to view more results:
 
 ```curl -d '{"id":"1","customerId":"1","state":"CREATED","product":"JUMPERS","quantity":"2","price":"12.99"}' -X POST http://10.70.29.54:26601/v1/orders --header "Content-Type: application/json"```
+
+
+#### Example_3a
+
+Create an email service that joins the topics orders and payments and joins on the orderId. Prints the contents of both topics.
+In the next excercise (Example_3b), we will join with the customers topic and simulate sending an email to a customer once the payment for an order (again, joined by orderId) is completed.
+
+1. Create a payments topic. Topics that join must have the same number of partitions:
+
+```./bin/kafka-topics --create --zookeeper localhost:2181 --partitions 1 --replication-factor 1 --topic payments```
+
+2. Run the EmailService:
+
+```mvn exec:java -Dexec.mainClass=com.entrpn.examples.kafka.streams.microservices.EmailService "-Dexec.args=localhost:9092 http://localhost:8081" -f pom.xml ```
+
+3. Produce orders and Payments:
+
+```mvn exec:java -f pom.xml -Dexec.mainClass=com.entrpn.examples.kafka.streams.microservices.util.ProduceOrders```
+
+```mvn exec:java -f pom.xml -Dexec.mainClass=com.entrpn.examples.kafka.streams.microservices.util.ProducePayments```
+
+Look at the logs for the output. When the orderId matches in both topics: 
+
+```text
+[2019-09-24 15:23:46,446] INFO [EmailService-a4bff565-2333-4bb0-a6b3-f9e75c34ec04-StreamThread-1] ************************ (com.entrpn.examples.kafka.streams.microservices.EmailService)
+[2019-09-24 15:23:46,446] INFO [EmailService-a4bff565-2333-4bb0-a6b3-f9e75c34ec04-StreamThread-1] key (orderId): 50 (com.entrpn.examples.kafka.streams.microservices.EmailService)
+[2019-09-24 15:23:46,446] INFO [EmailService-a4bff565-2333-4bb0-a6b3-f9e75c34ec04-StreamThread-1] payment.orderId: 50 (com.entrpn.examples.kafka.streams.microservices.EmailService)
+[2019-09-24 15:23:46,446] INFO [EmailService-a4bff565-2333-4bb0-a6b3-f9e75c34ec04-StreamThread-1] order.orderId: 50 (com.entrpn.examples.kafka.streams.microservices.EmailService)
+[2019-09-24 15:23:46,446] INFO [EmailService-a4bff565-2333-4bb0-a6b3-f9e75c34ec04-StreamThread-1] customerId: 15 (com.entrpn.examples.kafka.streams.microservices.EmailService)
+[2019-09-24 15:23:46,447] INFO [EmailService-a4bff565-2333-4bb0-a6b3-f9e75c34ec04-StreamThread-1] orderState: CREATED (com.entrpn.examples.kafka.streams.microservices.EmailService)
+[2019-09-24 15:23:46,447] INFO [EmailService-a4bff565-2333-4bb0-a6b3-f9e75c34ec04-StreamThread-1] product: UNDERPANTS (com.entrpn.examples.kafka.streams.microservices.EmailService)
+[2019-09-24 15:23:46,447] INFO [EmailService-a4bff565-2333-4bb0-a6b3-f9e75c34ec04-StreamThread-1] quantity: 3 (com.entrpn.examples.kafka.streams.microservices.EmailService)
+[2019-09-24 15:23:46,447] INFO [EmailService-a4bff565-2333-4bb0-a6b3-f9e75c34ec04-StreamThread-1] price: 5.0 (com.entrpn.examples.kafka.streams.microservices.EmailService)
+[2019-09-24 15:23:46,447] INFO [EmailService-a4bff565-2333-4bb0-a6b3-f9e75c34ec04-StreamThread-1] getAmount: 1000.0 (com.entrpn.examples.kafka.streams.microservices.EmailService)
+[2019-09-24 15:23:46,447] INFO [EmailService-a4bff565-2333-4bb0-a6b3-f9e75c34ec04-StreamThread-1] ccy: CZK (com.entrpn.examples.kafka.streams.microservices.EmailService)
+```
+

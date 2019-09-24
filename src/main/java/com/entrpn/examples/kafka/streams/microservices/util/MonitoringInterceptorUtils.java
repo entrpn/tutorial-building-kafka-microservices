@@ -2,6 +2,7 @@ package com.entrpn.examples.kafka.streams.microservices.util;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,6 +40,13 @@ public class MonitoringInterceptorUtils {
             hasInterceptor = false;
         }
         return hasInterceptor;
+    }
+
+    public static void maybeConfigureInterceptorsStreams(final Properties streamsConfig) {
+        if (hasMonitoringConsumerInterceptor() && hasMonitoringProducerInterceptor()) {
+            streamsConfig.put(StreamsConfig.producerPrefix(ProducerConfig.INTERCEPTOR_CLASSES_CONFIG), PRODUCER_INTERCEPTOR);
+            streamsConfig.put(StreamsConfig.mainConsumerPrefix(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG), CONSUMER_INTERCEPTOR);
+        }
     }
 
     private static boolean hasMonitoringConsumerInterceptor() {

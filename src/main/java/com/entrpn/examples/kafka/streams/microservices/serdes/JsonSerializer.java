@@ -1,6 +1,5 @@
 package com.entrpn.examples.kafka.streams.microservices.serdes;
 
-import com.entrpn.examples.kafka.streams.microservices.OrdersService;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.serialization.Serializer;
 import org.codehaus.jackson.map.ObjectMapper;

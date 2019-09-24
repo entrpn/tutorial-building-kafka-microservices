@@ -2,6 +2,7 @@ package com.entrpn.examples.kafka.streams.microservices;
 
 import com.entrpn.examples.kafka.streams.microservices.dtos.Order;
 import com.entrpn.examples.kafka.streams.microservices.dtos.OrderValidation;
+import com.entrpn.examples.kafka.streams.microservices.dtos.Payment;
 import com.entrpn.examples.kafka.streams.microservices.serdes.JsonSerdes;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -46,6 +47,8 @@ public class Schemas {
 
         public static Topic<String, OrderValidation> ORDER_VALIDATIONS;
 
+        public static Topic<String, Payment> PAYMENTS;
+
         static {
             createTopics();
         }
@@ -53,6 +56,7 @@ public class Schemas {
         private static void createTopics() {
             ORDERS = new Topic("orders", Serdes.String(), new JsonSerdes<Order>(Order.class));
             ORDER_VALIDATIONS = new Topic("order-validations", Serdes.String(), new JsonSerdes<OrderValidation>(OrderValidation.class));
+            PAYMENTS = new Topic("payments", Serdes.String(), new JsonSerdes<Payment>(Payment.class));
         }
 
     }
