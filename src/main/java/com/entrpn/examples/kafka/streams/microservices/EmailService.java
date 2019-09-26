@@ -3,6 +3,7 @@ package com.entrpn.examples.kafka.streams.microservices;
 import com.entrpn.examples.kafka.streams.microservices.dtos.Customer;
 import com.entrpn.examples.kafka.streams.microservices.dtos.Order;
 import com.entrpn.examples.kafka.streams.microservices.dtos.Payment;
+import com.entrpn.examples.kafka.streams.microservices.processors.OrdersProcessor;
 import com.entrpn.examples.kafka.streams.microservices.util.MicroserviceUtils;
 import com.entrpn.examples.kafka.streams.microservices.util.StreamsUtils;
 import org.apache.kafka.streams.KafkaStreams;
@@ -71,6 +72,8 @@ public class EmailService implements Service {
         final KStream<String, Order> orders = builder.stream(Schemas.Topics.ORDERS.name(),
                 Consumed.with(Schemas.Topics.ORDERS.getKeySerde(), Schemas.Topics.ORDERS.getValueSerde()));
 
+        orders.process(OrdersProcessor::new);
+
         final KStream<String, Payment> payments = builder.stream(Schemas.Topics.PAYMENTS.name(),
                 Consumed.with(Schemas.Topics.PAYMENTS.getKeySerde(), Schemas.Topics.PAYMENTS.getValueSerde()))
                 .selectKey((s, payment) -> payment.getOrderId());
@@ -81,17 +84,30 @@ public class EmailService implements Service {
         orders.join(payments, EmailTuple::new,
                 JoinWindows.of(Duration.ofMinutes(1)), serdes)
                 .peek((key, value) -> {
+
+                    Payment payment = value.payment;
+                    Order order = value.order;
+
                     log.info("************************");
                     log.info("key (orderId): " + key);
-                    log.info("payment.orderId: " + value.payment.getOrderId());
-                    log.info("order.orderId: " + value.order.getId());
-                    log.info("customerId: " + value.order.getCustomerId());
-                    log.info("orderState: " + value.order.getState());
-                    log.info("product: " + value.order.getProduct());
-                    log.info("quantity: " + value.order.getQuantity());
-                    log.info("price: " + value.order.getPrice());
-                    log.info("getAmount: " + value.payment.getAmount());
-                    log.info("ccy: " + value.payment.getCcy());
+
+                    if (payment == null) {
+                        log.info("payment is null");
+                    } else {
+                        log.info("payment.orderId: " + payment.getOrderId());
+                        log.info("getAmount: " + payment.getAmount());
+                        log.info("ccy: " + payment.getCcy());
+                    }
+                    if (order == null) {
+                        log.info("order is null");
+                    } else {
+                        log.info("order.orderId: " + value.order.getId());
+                        log.info("customerId: " + value.order.getCustomerId());
+                        log.info("orderState: " + value.order.getState());
+                        log.info("product: " + value.order.getProduct());
+                        log.info("quantity: " + value.order.getQuantity());
+                        log.info("price: " + value.order.getPrice());
+                    }
                 });
 
         Topology topology = builder.build();
