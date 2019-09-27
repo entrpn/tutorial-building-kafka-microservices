@@ -208,3 +208,30 @@ Also the gold topic receives a message:
 ```json
 {"id":"131","customerId":15,"customerLevel":"gold"}
 ```
+
+### Example_4
+
+Here you create a FraudService that filters orders in "CREATED" state and aggregates how much money is being spent for that customer over a period of 1 hour.
+If that amount spent goes over a threshold then the consequent order fails based on the possibility of fraud. This is done via branching. A message is posted 
+into order-validations topic with a PASS or FAIL for the FRAUD_CHECK validation type (remember you built validation type ORDER_DETAILS_CHECK in example 2).
+
+1. After checking out example_4, build the app:
+
+```mvn install -Dmaven.test.skip=true```
+
+2. Run FraudService:
+
+```mvn exec:java -Dexec.mainClass=com.entrpn.examples.kafka.streams.microservices.FraudService "-Dexec.args=localhost:9092 http://localhost:8081" -f pom.xml ```
+
+3. Send orders:
+
+```mvn exec:java -f pom.xml -Dexec.mainClass=com.entrpn.examples.kafka.streams.microservices.util.ProduceOrders```
+
+In my case I had a lot of orders in the backlog so I received a failure right away, but your results might be different if you don't have any messages in the orders topic and the KTable.
+
+```json
+{"orderId":"50","checkType":"FRAUD_CHECK","validationResult":"FAIL"}
+```
+
+You can delete your KTable and orders topic, recreate it and play aroudn with ProduceOrders to see transactions pass then fail.
+

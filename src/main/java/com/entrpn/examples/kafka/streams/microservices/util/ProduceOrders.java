@@ -29,7 +29,7 @@ public class ProduceOrders {
             int orderId = 50;
 
             while (true) {
-                final Order order = new Order(String.valueOf(orderId), 15L, CREATED.getValue(), "UNDERPANTS", 3, 5.00d);
+                final Order order = new Order(String.valueOf(orderId), 15L, CREATED.getValue(), "UNDERPANTS", 3, 300.00d);
                 final ProducerRecord<String,Order> record = new ProducerRecord<>("orders",order.getId(),order);
                 producer.send(record);
                 Thread.sleep(10000L);

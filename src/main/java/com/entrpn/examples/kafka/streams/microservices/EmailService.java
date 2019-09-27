@@ -4,7 +4,6 @@ import com.entrpn.examples.kafka.streams.microservices.dtos.Customer;
 import com.entrpn.examples.kafka.streams.microservices.dtos.Order;
 import com.entrpn.examples.kafka.streams.microservices.dtos.OrderEnriched;
 import com.entrpn.examples.kafka.streams.microservices.dtos.Payment;
-import com.entrpn.examples.kafka.streams.microservices.util.MicroserviceUtils;
 import com.entrpn.examples.kafka.streams.microservices.util.StreamsUtils;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
