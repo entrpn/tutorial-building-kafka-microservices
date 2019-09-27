@@ -14,7 +14,7 @@ public class ProduceCustomers {
     public static void main(final String[] args) {
 
         final Properties props = new Properties();
-        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "locahost:9092");
+        props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
         props.put(ProducerConfig.ACKS_CONFIG, "all");
         props.put(ProducerConfig.RETRIES_CONFIG, 0);
         MonitoringInterceptorUtils.maybeConfigureInterceptorsProducer(props);
@@ -25,7 +25,7 @@ public class ProduceCustomers {
 
             while (true) {
                 final Customer customer = new Customer(15L, "Franz", "Kafka", "frans@thedarkside.net", "oppression street, prague, cze", "gold");
-                final ProducerRecord<Long, Customer> record = new ProducerRecord<>("customers", customer.getId(), customer);
+                final ProducerRecord<Long, Customer> record = new ProducerRecord("customers", customer.getId(), customer);
                 producer.send(record);
                 Thread.sleep(10000L);
             }

@@ -140,3 +140,71 @@ Look at the logs for the output. When the orderId matches in both topics:
 [2019-09-24 15:23:46,447] INFO [EmailService-a4bff565-2333-4bb0-a6b3-f9e75c34ec04-StreamThread-1] ccy: CZK (com.entrpn.examples.kafka.streams.microservices.EmailService)
 ```
 
+### Example_3b
+
+Create a GlobalKTable. Join the topic customers to orders and payments. Simulate sending an email whenever the payment and order are received.
+Create a message based on the customer's level and send it to that topic.
+
+1. After checking out example_3b, build the app:
+
+```mvn install -Dmaven.test.skip=true```
+
+2.  Create a customers topic:
+
+```./bin/kafka-topics --create --zookeeper localhost:2181 --partitions 1 --replication-factor 1 --topic payments```
+
+3. Create the 3 topics that represent customer levels (gold, silver, platinum):
+
+```./bin/kafka-topics --create --zookeeper localhost:2181 --partitions 1 --replication-factor 1 --topic gold```
+
+```./bin/kafka-topics --create --zookeeper localhost:2181 --partitions 1 --replication-factor 1 --topic silver```
+
+```./bin/kafka-topics --create --zookeeper localhost:2181 --partitions 1 --replication-factor 1 --topic platinum```
+
+4. Run the EmailService:
+
+```mvn exec:java -Dexec.mainClass=com.entrpn.examples.kafka.streams.microservices.EmailService "-Dexec.args=localhost:9092 http://localhost:8081" -f pom.xml ```
+
+5. Produce order, payment and customer records:
+
+```mvn exec:java -f pom.xml -Dexec.mainClass=com.entrpn.examples.kafka.streams.microservices.util.ProduceOrders```
+
+```mvn exec:java -f pom.xml -Dexec.mainClass=com.entrpn.examples.kafka.streams.microservices.util.ProducePayments```
+
+```mvn exec:java -f pom.xml -Dexec.mainClass=com.entrpn.examples.kafka.streams.microservices.util.ProduceCustomers```
+
+6. Listen to the orders, customers, payments and gold topics to view messages
+
+```./bin/kafka-console-consumer --bootstrap-server localhost:9092 --topic orders --from-beginning```
+
+```./bin/kafka-console-consumer --bootstrap-server localhost:9092 --topic payments --from-beginning```
+
+```./bin/kafka-console-consumer --bootstrap-server localhost:9092 --topic customers --from-beginning```
+
+```./bin/kafka-console-consumer --bootstrap-server localhost:9092 --topic gold --from-beginning```
+
+Notice the EmailService app logging. When messages from orders, payments and customers match on the orderId and cstomerId the sendEmail method is called to simulate sending an email:
+
+```text
+19-09-27 09:40:42,736] INFO [EmailService-43212396-9a2e-446b-809e-e0c77b92a015-StreamThread-1] ************************ (com.entrpn.examples.kafka.streams.microservices.EmailService)
+[2019-09-27 09:40:42,737] INFO [EmailService-43212396-9a2e-446b-809e-e0c77b92a015-StreamThread-1] key (orderId): 50 (com.entrpn.examples.kafka.streams.microservices.EmailService)
+[2019-09-27 09:40:42,737] INFO [EmailService-43212396-9a2e-446b-809e-e0c77b92a015-StreamThread-1] payment.orderId: 50 (com.entrpn.examples.kafka.streams.microservices.EmailService)
+[2019-09-27 09:40:42,737] INFO [EmailService-43212396-9a2e-446b-809e-e0c77b92a015-StreamThread-1] order.orderId: 50 (com.entrpn.examples.kafka.streams.microservices.EmailService)
+[2019-09-27 09:40:42,737] INFO [EmailService-43212396-9a2e-446b-809e-e0c77b92a015-StreamThread-1] customerId: 15 (com.entrpn.examples.kafka.streams.microservices.EmailService)
+[2019-09-27 09:40:42,737] INFO [EmailService-43212396-9a2e-446b-809e-e0c77b92a015-StreamThread-1] orderState: CREATED (com.entrpn.examples.kafka.streams.microservices.EmailService)
+[2019-09-27 09:40:42,737] INFO [EmailService-43212396-9a2e-446b-809e-e0c77b92a015-StreamThread-1] product: UNDERPANTS (com.entrpn.examples.kafka.streams.microservices.EmailService)
+[2019-09-27 09:40:42,737] INFO [EmailService-43212396-9a2e-446b-809e-e0c77b92a015-StreamThread-1] quantity: 3 (com.entrpn.examples.kafka.streams.microservices.EmailService)
+[2019-09-27 09:40:42,737] INFO [EmailService-43212396-9a2e-446b-809e-e0c77b92a015-StreamThread-1] price: 5.0 (com.entrpn.examples.kafka.streams.microservices.EmailService)
+[2019-09-27 09:40:42,737] INFO [EmailService-43212396-9a2e-446b-809e-e0c77b92a015-StreamThread-1] getAmount: 1000.0 (com.entrpn.examples.kafka.streams.microservices.EmailService)
+[2019-09-27 09:40:42,737] INFO [EmailService-43212396-9a2e-446b-809e-e0c77b92a015-StreamThread-1] ccy: CZK (com.entrpn.examples.kafka.streams.microservices.EmailService)
+[2019-09-27 09:40:42,737] WARN [EmailService-43212396-9a2e-446b-809e-e0c77b92a015-StreamThread-1] Sending email: 
+Customer:com.entrpn.examples.kafka.streams.microservices.dtos.Customer@1deda9ad
+Order:com.entrpn.examples.kafka.streams.microservices.dtos.Order@2932e8fb
+Paymentcom.entrpn.examples.kafka.streams.microservices.dtos.Payment@d88b470 (com.entrpn.examples.kafka.streams.microservices.EmailService)
+```
+
+Also the gold topic receives a message:
+
+```json
+{"id":"131","customerId":15,"customerLevel":"gold"}
+```

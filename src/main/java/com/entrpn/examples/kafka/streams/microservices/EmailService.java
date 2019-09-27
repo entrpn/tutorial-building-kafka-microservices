@@ -2,16 +2,14 @@ package com.entrpn.examples.kafka.streams.microservices;
 
 import com.entrpn.examples.kafka.streams.microservices.dtos.Customer;
 import com.entrpn.examples.kafka.streams.microservices.dtos.Order;
+import com.entrpn.examples.kafka.streams.microservices.dtos.OrderEnriched;
 import com.entrpn.examples.kafka.streams.microservices.dtos.Payment;
 import com.entrpn.examples.kafka.streams.microservices.util.MicroserviceUtils;
 import com.entrpn.examples.kafka.streams.microservices.util.StreamsUtils;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology;
-import org.apache.kafka.streams.kstream.Consumed;
-import org.apache.kafka.streams.kstream.JoinWindows;
-import org.apache.kafka.streams.kstream.Joined;
-import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,11 +73,15 @@ public class EmailService implements Service {
                 Consumed.with(Schemas.Topics.PAYMENTS.getKeySerde(), Schemas.Topics.PAYMENTS.getValueSerde()))
                 .selectKey((s, payment) -> payment.getOrderId());
 
+        final GlobalKTable<Long, Customer> customers = builder.globalTable(Schemas.Topics.CUSTOMERS.name(),
+                Consumed.with(Schemas.Topics.CUSTOMERS.getKeySerde(), Schemas.Topics.CUSTOMERS.getValueSerde()));
+
         final Joined<String, Order, Payment> serdes = Joined.with(Schemas.Topics.ORDERS.getKeySerde(),
                 Schemas.Topics.ORDERS.getValueSerde(), Schemas.Topics.PAYMENTS.getValueSerde());
 
         orders.join(payments, EmailTuple::new,
                 JoinWindows.of(Duration.ofMinutes(1)), serdes)
+                .join(customers, (key, value) -> value.order.getCustomerId(), EmailTuple::setCustomer)
                 .peek((key, value) -> {
                     log.info("************************");
                     log.info("key (orderId): " + key);
@@ -92,7 +94,20 @@ public class EmailService implements Service {
                     log.info("price: " + value.order.getPrice());
                     log.info("getAmount: " + value.payment.getAmount());
                     log.info("ccy: " + value.payment.getCcy());
+                    emailer.sendEmail(value);
                 });
+
+        orders.join(
+                customers,
+                (orderId, order) -> order.getCustomerId(),
+                (order, customer) -> new OrderEnriched(order.getId(), order.getCustomerId(), customer.getLevel())
+        ).to(
+                (orderId, orderEnriched, record) -> {
+                    log.info("orderEnriched customerLevel: " + orderEnriched.getCustomerLevel());
+                    return orderEnriched.getCustomerLevel();
+                },
+                Produced.with(Schemas.Topics.ORDERS_ENRICHED.getKeySerde(),
+                        Schemas.Topics.ORDERS_ENRICHED.getValueSerde()));
 
         Topology topology = builder.build();
 

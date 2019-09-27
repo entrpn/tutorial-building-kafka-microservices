@@ -1,8 +1,6 @@
 package com.entrpn.examples.kafka.streams.microservices;
 
-import com.entrpn.examples.kafka.streams.microservices.dtos.Order;
-import com.entrpn.examples.kafka.streams.microservices.dtos.OrderValidation;
-import com.entrpn.examples.kafka.streams.microservices.dtos.Payment;
+import com.entrpn.examples.kafka.streams.microservices.dtos.*;
 import com.entrpn.examples.kafka.streams.microservices.serdes.JsonSerdes;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -49,6 +47,10 @@ public class Schemas {
 
         public static Topic<String, Payment> PAYMENTS;
 
+        public static Topic<Long, Customer> CUSTOMERS;
+
+        public static Topic<String, OrderEnriched> ORDERS_ENRICHED;
+
         static {
             createTopics();
         }
@@ -57,6 +59,8 @@ public class Schemas {
             ORDERS = new Topic("orders", Serdes.String(), new JsonSerdes<Order>(Order.class));
             ORDER_VALIDATIONS = new Topic("order-validations", Serdes.String(), new JsonSerdes<OrderValidation>(OrderValidation.class));
             PAYMENTS = new Topic("payments", Serdes.String(), new JsonSerdes<Payment>(Payment.class));
+            CUSTOMERS = new Topic("customers", Serdes.Long(), new JsonSerdes<Customer>(Customer.class));
+            ORDERS_ENRICHED = new Topic("orders-enriched", Serdes.String(), new JsonSerdes<OrderEnriched>(OrderEnriched.class));
         }
 
     }
