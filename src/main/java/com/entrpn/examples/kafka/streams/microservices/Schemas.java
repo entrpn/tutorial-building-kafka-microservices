@@ -51,6 +51,8 @@ public class Schemas {
 
         public static Topic<String, OrderEnriched> ORDERS_ENRICHED;
 
+        public static Topic<String, Integer> WAREHOUSE_INVENTORY;
+
         static {
             createTopics();
         }
@@ -61,6 +63,7 @@ public class Schemas {
             PAYMENTS = new Topic("payments", Serdes.String(), new JsonSerdes<Payment>(Payment.class));
             CUSTOMERS = new Topic("customers", Serdes.Long(), new JsonSerdes<Customer>(Customer.class));
             ORDERS_ENRICHED = new Topic("orders-enriched", Serdes.String(), new JsonSerdes<OrderEnriched>(OrderEnriched.class));
+            WAREHOUSE_INVENTORY = new Topic("warehouse-inventory", Serdes.String(), Serdes.Integer());
         }
 
     }

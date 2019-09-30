@@ -285,3 +285,43 @@ The result should be in orders topic:
 ```json
 {"id":"545454","customerId":1,"state":"VALIDATED","product":"JUMPERS","quantity":2,"price":12.99}
 ```
+
+### Example_6
+
+In this exercise, you will create a state store for the Inventory Service. This state store is initialized with data and updated as new orders are created.
+
+1. After checking out example_6, build the app:
+
+```mvn install -Dmaven.test.skip=true```
+
+2. Create the topic warehouse-inventory
+
+```./bin/kafka-topics --create --zookeeper localhost:2181 --partitions 1 --replication-factor 1 --topic warehouse-inventory```
+
+3. Listen to the order-validations topic
+
+```./bin/kafka-console-consumer --bootstrap-server localhost:9092 --topic order-validations --from-beginning```
+
+4. Run the InventoryService
+
+```mvn exec:java -Dexec.mainClass=com.entrpn.examples.kafka.streams.microservices.InventoryService -f pom.xml```
+
+5. Add inventory by running AddInventory
+
+``` mvn exec:java -Dexec.mainClass=com.entrpn.examples.kafka.streams.microservices.util.AddInventory -f pom.xml```
+
+6. Run the OrderService:
+
+```mvn exec:java -Dexec.mainClass=com.entrpn.examples.kafka.streams.microservices.OrdersService "-Dexec.args=localhost:9092 http://localhost:8081 localhost 26601" -f pom.xml```
+
+7. Make an order request:
+
+```curl -d '{"id":"545454","customerId":"1","state":"CREATED","product":"JUMPERS","quantity":"2","price":"12.99"}' -X POST http://10.70.29.54:26601/v1/orders --header "Content-Type: application/json"```
+
+The order is validated in order-validations topic because there is enough inventory.
+
+```json
+{"orderId":"545454","checkType":"INVENTORY_CHECK","validationResult":"PASS"}
+```
+
+Bonus: Try to create enough orders where validationResult fails due to not enough inventory.

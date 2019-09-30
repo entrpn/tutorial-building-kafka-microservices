@@ -1,0 +1,57 @@
+package com.entrpn.examples.kafka.streams.microservices.util;
+
+import com.entrpn.examples.kafka.streams.microservices.Schemas;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.streams.KeyValue;
+
+import java.util.List;
+import java.util.Properties;
+import java.util.concurrent.ExecutionException;
+
+import static java.util.Arrays.asList;
+
+public class AddInventory {
+
+    private static void sendInventory(final List<KeyValue<String, Integer>> inventory,
+                                      final Schemas.Topic<String, Integer> topic,
+                                      final String boostrapServers) {
+
+        final Properties producerConfig = new Properties();
+        producerConfig.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, boostrapServers);
+        producerConfig.put(ProducerConfig.ACKS_CONFIG, "all");
+        producerConfig.put(ProducerConfig.RETRIES_CONFIG, 0);
+        producerConfig.put(ProducerConfig.CLIENT_ID_CONFIG, "inventory-generator");
+        MonitoringInterceptorUtils.maybeConfigureInterceptorsProducer(producerConfig);
+
+        try (final KafkaProducer<String, Integer> stockProducer = new KafkaProducer(producerConfig, Serdes.String().serializer(), Serdes.Integer().serializer())) {
+            for (final KeyValue<String, Integer> kv : inventory) {
+                System.out.println("key: " + kv.key);
+                System.out.println("value: " + kv.value);
+                stockProducer.send(new ProducerRecord<>(topic.name(), kv.key, kv.value)).get();
+            }
+        } catch (final InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    public static void main(String[] args) {
+
+        final int quantityUnderpants = args.length > 0 ? Integer.valueOf(args[0]) : 20;
+        final int quantityJumpers = args.length > 1 ? Integer.valueOf(args[1]) : 10;
+        final String bootstrapServers = args.length > 2 ? args[2] : "localhost:9092";
+
+        //Send Inventory
+        final List<KeyValue<String, Integer>> inventory = asList(
+                new KeyValue("UNDERPANTS", quantityUnderpants),
+                new KeyValue("JUMPERS", quantityJumpers)
+        );
+
+        System.out.printf("Send inventory to %s%n", Schemas.Topics.WAREHOUSE_INVENTORY);
+        sendInventory(inventory, Schemas.Topics.WAREHOUSE_INVENTORY, bootstrapServers);
+
+    }
+}
