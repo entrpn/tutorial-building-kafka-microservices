@@ -233,5 +233,55 @@ In my case I had a lot of orders in the backlog so I received a failure right aw
 {"orderId":"50","checkType":"FRAUD_CHECK","validationResult":"FAIL"}
 ```
 
-You can delete your KTable and orders topic, recreate it and play aroudn with ProduceOrders to see transactions pass then fail.
+You can delete your KTable and orders topic, recreate it and play around with ProduceOrders to see transactions pass then fail.
 
+### Example_5
+
+Here you create a ValidationsAggregatorService that uses stateful operations. They are stateful because they maintain data during processing. 
+In this exercise a 2 minute window is used for processing. If all 3 successful operations are received for an order (INVENTORY_CHECK, FRAUD_CHECK, ORDER_DETAILS_CHECK)
+then the order moves to the validated state, else in the failed state.
+
+1. After checking out example_5, build the app:
+
+```mvn install -Dmaven.test.skip=true```
+
+2. Run OrderDetailsService, OrdersService and ValidationAggregatorService:
+
+```exec:java -Dexec.mainClass=com.entrpn.examples.kafka.streams.microservices.OrderDetailsService "-Dexec.args=localhost:9092 http://localhost:8081" -f pom.xml```
+
+```exec:java -Dexec.mainClass=com.entrpn.examples.kafka.streams.microservices.OrdersService "-Dexec.args=localhost:9092 http://localhost:8081 localhost 26601" -f pom.xml```
+
+```exec:java -Dexec.mainClass=com.entrpn.examples.kafka.streams.microservices.ValidationsAggregatorService "-Dexec.args=localhost:9092 http://localhost:8081" -f pom.xml```
+
+3. Listen to the orders and order-validations topics
+
+```./bin/kafka-console-consumer --bootstrap-server localhost:9092 --topic orders --from-beginning```
+
+```./bin/kafka-console-consumer --bootstrap-server localhost:9092 --topic order-validations --from-beginning```
+
+4. Create an order using CURL.
+
+```curl -d '{"id":"4567","customerId":"1","state":"CREATED","product":"JUMPERS","quantity":"2","price":"12.99"}' -X POST http://10.70.29.54:26601/v1/orders --header "Content-Type: application/json"```
+
+The order can be viewed on the orders topic:
+
+```json
+{"id":"4567","customerId":1,"state":"CREATED","product":"JUMPERS","quantity":2,"price":12.99}
+```
+
+And the order-validations:
+
+```json
+{"orderId":"545454","checkType":"ORDER_DETAILS_CHECK","validationResult":"PASS"}
+```
+
+5. The ValidationsAggregatorService only checks that a validationResult of PASS happens 3 times for a specific orderId. In reality we would check that each pass came from INVENTORY_CHECK, FRAUD_CHECK, ORDER_DETAILS_CHECK respectively.
+Since that isn't the case, we can create two more orders with CURL to see the order go from CREATED TO VALIDATED.
+
+Run CURL two more times. Remember you have to create 3 orders with the same id within a 2 minute window for this to work.
+
+The result should be in orders topic:
+
+```json
+{"id":"545454","customerId":1,"state":"VALIDATED","product":"JUMPERS","quantity":2,"price":12.99}
+```

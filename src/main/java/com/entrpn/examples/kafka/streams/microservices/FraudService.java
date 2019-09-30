@@ -34,6 +34,7 @@ public class FraudService implements Service {
     @Override
     public void start(String bootstrapServers, String stateDir) {
         streams = processStreams(bootstrapServers, stateDir);
+        streams.cleanUp();
 
         final CountDownLatch startLatch = new CountDownLatch(1);
 
