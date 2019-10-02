@@ -1,7 +1,8 @@
 package com.entrpn.examples.kafka.streams.microservices;
 
-import com.entrpn.examples.kafka.streams.microservices.dtos.*;
-import com.entrpn.examples.kafka.streams.microservices.serdes.JsonSerdes;
+import com.entrpn.examples.kafka.streams.microservices.serdes.ProductTypeSerde;
+import io.confluent.examples.streams.avro.microservices.*;
+import io.confluent.kafka.streams.serdes.avro.SpecificAvroSerde;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 
@@ -51,19 +52,19 @@ public class Schemas {
 
         public static Topic<String, OrderEnriched> ORDERS_ENRICHED;
 
-        public static Topic<String, Integer> WAREHOUSE_INVENTORY;
+        public static Topic<Product, Integer> WAREHOUSE_INVENTORY;
 
         static {
             createTopics();
         }
 
         private static void createTopics() {
-            ORDERS = new Topic("orders", Serdes.String(), new JsonSerdes<Order>(Order.class));
-            ORDER_VALIDATIONS = new Topic("order-validations", Serdes.String(), new JsonSerdes<OrderValidation>(OrderValidation.class));
-            PAYMENTS = new Topic("payments", Serdes.String(), new JsonSerdes<Payment>(Payment.class));
-            CUSTOMERS = new Topic("customers", Serdes.Long(), new JsonSerdes<Customer>(Customer.class));
-            ORDERS_ENRICHED = new Topic("orders-enriched", Serdes.String(), new JsonSerdes<OrderEnriched>(OrderEnriched.class));
-            WAREHOUSE_INVENTORY = new Topic("warehouse-inventory", Serdes.String(), Serdes.Integer());
+            ORDERS = new Topic("orders", Serdes.String(), new SpecificAvroSerde());
+            ORDER_VALIDATIONS = new Topic("order-validations", Serdes.String(), new SpecificAvroSerde());
+            PAYMENTS = new Topic("payments", Serdes.String(), new SpecificAvroSerde());
+            CUSTOMERS = new Topic("customers", Serdes.Long(), new SpecificAvroSerde());
+            ORDERS_ENRICHED = new Topic("orders-enriched", Serdes.String(), new SpecificAvroSerde());
+            WAREHOUSE_INVENTORY = new Topic("warehouse-inventory", new ProductTypeSerde(), Serdes.Integer());
         }
 
     }

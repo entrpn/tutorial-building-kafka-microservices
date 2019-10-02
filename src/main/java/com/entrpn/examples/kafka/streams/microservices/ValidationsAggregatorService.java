@@ -1,9 +1,9 @@
 package com.entrpn.examples.kafka.streams.microservices;
 
-import com.entrpn.examples.kafka.streams.microservices.dtos.Order;
-import com.entrpn.examples.kafka.streams.microservices.dtos.OrderState;
-import com.entrpn.examples.kafka.streams.microservices.dtos.OrderValidation;
 import com.entrpn.examples.kafka.streams.microservices.util.StreamsUtils;
+import io.confluent.examples.streams.avro.microservices.Order;
+import io.confluent.examples.streams.avro.microservices.OrderState;
+import io.confluent.examples.streams.avro.microservices.OrderValidation;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -16,10 +16,10 @@ import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import static com.entrpn.examples.kafka.streams.microservices.dtos.OrderValidationResult.FAIL;
-import static com.entrpn.examples.kafka.streams.microservices.dtos.OrderValidationResult.PASS;
 import static com.entrpn.examples.kafka.streams.microservices.util.MicroserviceUtils.addShutdownHookAndBlock;
 import static com.entrpn.examples.kafka.streams.microservices.util.MicroserviceUtils.parseArgsAndConfigure;
+import static io.confluent.examples.streams.avro.microservices.OrderValidationResult.FAIL;
+import static io.confluent.examples.streams.avro.microservices.OrderValidationResult.PASS;
 
 public class ValidationsAggregatorService implements Service {
 
@@ -91,7 +91,7 @@ public class ValidationsAggregatorService implements Service {
                 .join(
                         orders,
                         (id, order) -> {
-                            order.setState(OrderState.VALIDATED.getValue());
+                            order.setState(OrderState.VALIDATED);
                             return order;
                         },
                         JoinWindows.of(Duration.ofMinutes(WINDOW_TIME_IN_MINS)),
@@ -109,7 +109,7 @@ public class ValidationsAggregatorService implements Service {
         validations
                 .filter((id, orderValidation) -> FAIL.equals(orderValidation.getValidationResult()))
                 .join(orders, (id, order) -> {
-                            order.setState(OrderState.FAILED.getValue());
+                            order.setState(OrderState.FAILED);
                             return order;
                         },
                         JoinWindows.of(Duration.ofMinutes(WINDOW_TIME_IN_MINS)),

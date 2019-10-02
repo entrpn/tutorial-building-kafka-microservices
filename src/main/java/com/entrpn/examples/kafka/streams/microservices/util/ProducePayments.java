@@ -1,7 +1,7 @@
 package com.entrpn.examples.kafka.streams.microservices.util;
 
-import com.entrpn.examples.kafka.streams.microservices.dtos.Payment;
-import com.entrpn.examples.kafka.streams.microservices.serdes.JsonSerializer;
+import io.confluent.examples.streams.avro.microservices.Payment;
+import io.confluent.kafka.streams.serdes.avro.SpecificAvroSerializer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -19,7 +19,7 @@ public class ProducePayments {
         props.put(ProducerConfig.RETRIES_CONFIG, 0);
         MonitoringInterceptorUtils.maybeConfigureInterceptorsProducer(props);
 
-        KafkaProducer<String, Payment> producer = new KafkaProducer<String, Payment>(props, new StringSerializer(), new JsonSerializer());
+        KafkaProducer<String, Payment> producer = new KafkaProducer<String, Payment>(props, new StringSerializer(), new SpecificAvroSerializer());
 
         try {
 

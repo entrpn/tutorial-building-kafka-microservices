@@ -1,6 +1,8 @@
 package com.entrpn.examples.kafka.streams.microservices.util;
 
 import com.entrpn.examples.kafka.streams.microservices.Schemas;
+import com.entrpn.examples.kafka.streams.microservices.serdes.ProductTypeSerde;
+import io.confluent.examples.streams.avro.microservices.Product;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -15,22 +17,25 @@ import static java.util.Arrays.asList;
 
 public class AddInventory {
 
-    private static void sendInventory(final List<KeyValue<String, Integer>> inventory,
-                                      final Schemas.Topic<String, Integer> topic,
-                                      final String boostrapServers) {
+    private static void sendInventory(final List<KeyValue<Product, Integer>> inventory,
+                                      final Schemas.Topic<Product, Integer> topic,
+                                      final String bootstrapServers) {
 
         final Properties producerConfig = new Properties();
-        producerConfig.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, boostrapServers);
+        producerConfig.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         producerConfig.put(ProducerConfig.ACKS_CONFIG, "all");
         producerConfig.put(ProducerConfig.RETRIES_CONFIG, 0);
         producerConfig.put(ProducerConfig.CLIENT_ID_CONFIG, "inventory-generator");
         MonitoringInterceptorUtils.maybeConfigureInterceptorsProducer(producerConfig);
+        final ProductTypeSerde productSerde = new ProductTypeSerde();
 
-        try (final KafkaProducer<String, Integer> stockProducer = new KafkaProducer(producerConfig, Serdes.String().serializer(), Serdes.Integer().serializer())) {
-            for (final KeyValue<String, Integer> kv : inventory) {
-                System.out.println("key: " + kv.key);
-                System.out.println("value: " + kv.value);
-                stockProducer.send(new ProducerRecord<>(topic.name(), kv.key, kv.value)).get();
+        try (final KafkaProducer<Product, Integer> stockProducer = new KafkaProducer<>(
+                producerConfig,
+                productSerde.serializer(),
+                Serdes.Integer().serializer())) {
+            for (final KeyValue<Product, Integer> kv : inventory) {
+                stockProducer.send(new ProducerRecord<>(topic.name(), kv.key, kv.value))
+                        .get();
             }
         } catch (final InterruptedException | ExecutionException e) {
             e.printStackTrace();
@@ -45,7 +50,7 @@ public class AddInventory {
         final String bootstrapServers = args.length > 2 ? args[2] : "localhost:9092";
 
         //Send Inventory
-        final List<KeyValue<String, Integer>> inventory = asList(
+        final List<KeyValue<Product, Integer>> inventory = asList(
                 new KeyValue("UNDERPANTS", quantityUnderpants),
                 new KeyValue("JUMPERS", quantityJumpers)
         );

@@ -1,18 +1,14 @@
 package com.entrpn.examples.kafka.streams.microservices;
 
-import com.entrpn.examples.kafka.streams.microservices.dtos.Order;
-import com.entrpn.examples.kafka.streams.microservices.dtos.OrderState;
-import com.entrpn.examples.kafka.streams.microservices.dtos.OrderValidation;
-import com.entrpn.examples.kafka.streams.microservices.dtos.OrderValidationType;
 import com.entrpn.examples.kafka.streams.microservices.util.MicroserviceUtils;
 import com.entrpn.examples.kafka.streams.microservices.util.StreamsUtils;
+import io.confluent.examples.streams.avro.microservices.*;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.*;
 import org.apache.kafka.streams.processor.ProcessorContext;
-import org.apache.kafka.streams.processor.To;
 import org.apache.kafka.streams.state.KeyValueStore;
 import org.apache.kafka.streams.state.StoreBuilder;
 import org.apache.kafka.streams.state.Stores;
@@ -23,8 +19,8 @@ import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import static com.entrpn.examples.kafka.streams.microservices.dtos.OrderValidationResult.FAIL;
-import static com.entrpn.examples.kafka.streams.microservices.dtos.OrderValidationResult.PASS;
+import static io.confluent.examples.streams.avro.microservices.OrderValidationResult.FAIL;
+import static io.confluent.examples.streams.avro.microservices.OrderValidationResult.PASS;
 
 public class InventoryService implements Service {
 
@@ -71,7 +67,7 @@ public class InventoryService implements Service {
         final KStream<String, Order> orders = builder
                 .stream(Schemas.Topics.ORDERS.name(), Consumed.with(Schemas.Topics.ORDERS.getKeySerde(), Schemas.Topics.ORDERS.getValueSerde()));
 
-        final KTable<String, Integer> warehouseInventory = builder
+        final KTable<Product, Integer> warehouseInventory = builder
                 .table(Schemas.Topics.WAREHOUSE_INVENTORY.name(), Consumed.with(Schemas.Topics.WAREHOUSE_INVENTORY.getKeySerde(), Schemas.Topics.WAREHOUSE_INVENTORY.getValueSerde()));
 
         //Create a store to reserve inventory whilst the order is processed.
@@ -96,17 +92,17 @@ public class InventoryService implements Service {
 
     }
 
-    private static class InventoryValidator implements Transformer<String, KeyValue<Order, Integer>, KeyValue<String, OrderValidation>> {
+    private static class InventoryValidator implements Transformer<Product, KeyValue<Order, Integer>, KeyValue<String, OrderValidation>> {
 
-        private KeyValueStore<String, Long> reservedStockStore;
+        private KeyValueStore<Product, Long> reservedStockStore;
 
         @Override
         public void init(ProcessorContext context) {
-            reservedStockStore = (KeyValueStore<String, Long>) context.getStateStore(RESERVED_STOCK_STORE_NAME);
+            reservedStockStore = (KeyValueStore<Product, Long>) context.getStateStore(RESERVED_STOCK_STORE_NAME);
         }
 
         @Override
-        public KeyValue<String, OrderValidation> transform(String key, KeyValue<Order, Integer> value) {
+        public KeyValue<String, OrderValidation> transform(Product key, KeyValue<Order, Integer> value) {
             //Process each order/inventory pair one at a time
             final OrderValidation validated;
             final Order order = value.key;

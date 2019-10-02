@@ -1,8 +1,9 @@
 package com.entrpn.examples.kafka.streams.microservices;
 
-import com.entrpn.examples.kafka.streams.microservices.dtos.Order;
+import com.entrpn.examples.kafka.streams.microservices.dtos.OrderBean;
 import com.entrpn.examples.kafka.streams.microservices.util.MicroserviceUtils;
 import com.entrpn.examples.kafka.streams.microservices.util.MonitoringInterceptorUtils;
+import io.confluent.examples.streams.avro.microservices.Order;
 import org.apache.kafka.clients.producer.*;
 import org.eclipse.jetty.server.Server;
 import org.glassfish.jersey.server.ManagedAsync;
@@ -44,17 +45,21 @@ public class OrdersService implements Service {
     @ManagedAsync
     @Path("/orders")
     @Consumes(MediaType.APPLICATION_JSON)
-    public void createOrder(final Order order,
+    public void createOrder(final OrderBean orderBean,
                             @QueryParam("timeout") @DefaultValue(CALL_TIMEOUT) final Long timeout,
                             @Suspended final AsyncResponse response) {
         log.info("createOrder");
+        log.info("orderBean: " + orderBean.toString());
         MicroserviceUtils.setTimeout(timeout, response);
+
+        final Order order = OrderBean.fromBean(orderBean);
 
         try {
             producer.send(new ProducerRecord(ORDERS.name(), order.getId(), order),
                     callback(response, order.getId()));
         } catch (final Exception e) {
             log.error("error: " + e);
+            e.printStackTrace();
         }
     }
 

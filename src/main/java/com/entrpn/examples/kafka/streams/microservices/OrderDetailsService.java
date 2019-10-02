@@ -1,8 +1,8 @@
 package com.entrpn.examples.kafka.streams.microservices;
 
-import com.entrpn.examples.kafka.streams.microservices.dtos.*;
 import com.entrpn.examples.kafka.streams.microservices.util.MicroserviceUtils;
 import com.entrpn.examples.kafka.streams.microservices.util.MonitoringInterceptorUtils;
+import io.confluent.examples.streams.avro.microservices.*;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -20,8 +20,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import static com.entrpn.examples.kafka.streams.microservices.dtos.OrderValidationResult.FAIL;
-import static com.entrpn.examples.kafka.streams.microservices.dtos.OrderValidationResult.PASS;
+import static io.confluent.examples.streams.avro.microservices.OrderValidationResult.FAIL;
+import static io.confluent.examples.streams.avro.microservices.OrderValidationResult.PASS;
 
 public class OrderDetailsService implements Service {
 

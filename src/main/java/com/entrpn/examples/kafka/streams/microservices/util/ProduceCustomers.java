@@ -1,7 +1,7 @@
 package com.entrpn.examples.kafka.streams.microservices.util;
 
-import com.entrpn.examples.kafka.streams.microservices.dtos.Customer;
-import com.entrpn.examples.kafka.streams.microservices.serdes.JsonSerializer;
+import io.confluent.examples.streams.avro.microservices.Customer;
+import io.confluent.kafka.streams.serdes.avro.SpecificAvroSerializer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -19,7 +19,7 @@ public class ProduceCustomers {
         props.put(ProducerConfig.RETRIES_CONFIG, 0);
         MonitoringInterceptorUtils.maybeConfigureInterceptorsProducer(props);
 
-        KafkaProducer<Long, Customer> producer = new KafkaProducer(props, new LongSerializer(), new JsonSerializer());
+        KafkaProducer<Long, Customer> producer = new KafkaProducer(props, new LongSerializer(), new SpecificAvroSerializer());
 
         try {
 

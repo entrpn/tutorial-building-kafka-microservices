@@ -1,9 +1,9 @@
 package com.entrpn.examples.kafka.streams.microservices;
 
-import com.entrpn.examples.kafka.streams.microservices.dtos.*;
-import com.entrpn.examples.kafka.streams.microservices.serdes.JsonSerdes;
 import com.entrpn.examples.kafka.streams.microservices.util.MicroserviceUtils;
 import com.entrpn.examples.kafka.streams.microservices.util.StreamsUtils;
+import io.confluent.examples.streams.avro.microservices.*;
+import io.confluent.kafka.streams.serdes.avro.SpecificAvroSerde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -18,8 +18,8 @@ import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import static com.entrpn.examples.kafka.streams.microservices.dtos.OrderValidationResult.FAIL;
-import static com.entrpn.examples.kafka.streams.microservices.dtos.OrderValidationResult.PASS;
+import static io.confluent.examples.streams.avro.microservices.OrderValidationResult.FAIL;
+import static io.confluent.examples.streams.avro.microservices.OrderValidationResult.PASS;
 
 public class FraudService implements Service {
 
@@ -82,10 +82,10 @@ public class FraudService implements Service {
                             log.info("customerId: " + custId);
                             log.info("order: " + order.getId());
                             log.info("total: " + total.getValue() + order.getQuantity() * order.getPrice());
-                            return new OrderValue(order, (total.getValue() == null ? 0 : total.getValue()) + order.getQuantity() * order.getPrice());
+                            return new OrderValue(order, (total.getValue()) + order.getQuantity() * order.getPrice());
                         },
                         (k, a, b) -> simpleMerge(a, b),
-                        Materialized.with(null, new JsonSerdes<OrderValue>(OrderValue.class)));
+                        Materialized.with(null, new SpecificAvroSerde<>()));
 
         // Ditch the windowing and rekey
         final KStream<String, OrderValue> ordersWithTotals = aggregate
@@ -122,7 +122,7 @@ public class FraudService implements Service {
     }
 
     private OrderValue simpleMerge(final OrderValue a, final OrderValue b) {
-        return new OrderValue(b.getOrder(), ((a == null || a.getValue() == null) ? b.getValue() : a.getValue() + b.getValue()));
+        return new OrderValue(b.getOrder(), ((a == null || a.getValue() == 0) ? b.getValue() : a.getValue() + b.getValue()));
     }
 
     public static void main(String[] args) throws Exception {

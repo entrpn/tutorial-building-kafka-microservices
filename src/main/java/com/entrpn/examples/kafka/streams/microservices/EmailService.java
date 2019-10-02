@@ -1,10 +1,10 @@
 package com.entrpn.examples.kafka.streams.microservices;
 
-import com.entrpn.examples.kafka.streams.microservices.dtos.Customer;
-import com.entrpn.examples.kafka.streams.microservices.dtos.Order;
-import com.entrpn.examples.kafka.streams.microservices.dtos.OrderEnriched;
-import com.entrpn.examples.kafka.streams.microservices.dtos.Payment;
 import com.entrpn.examples.kafka.streams.microservices.util.StreamsUtils;
+import io.confluent.examples.streams.avro.microservices.Customer;
+import io.confluent.examples.streams.avro.microservices.Order;
+import io.confluent.examples.streams.avro.microservices.OrderEnriched;
+import io.confluent.examples.streams.avro.microservices.Payment;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology;
