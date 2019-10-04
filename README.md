@@ -11,6 +11,33 @@ Start with each branch as follows:
 -   example_1
 -   example_2
 
+### How To Install Confluent CLI
+
+1. Download and unzip the confluent Self managed software from here https://www.confluent.io/download/
+
+2. Install cli (https://docs.confluent.io/current/quickstart/ce-quickstart.html#ce-quickstart)
+
+```curl -L https://cnfl.io/cli | sh -s -- -b /<path-to-directory>/bin```
+
+Add that directory to your PATH.
+
+3. Call the confluent clip command iwth the path to your confluent installation from step 1.
+
+```confluent --path ~/tools/confluent-5.3.1/ local start```
+
+4. To Stop it:
+
+```confluent --path ~/tools/confluent-5.3.1/ local stop```
+
+5. If control center doesn't start, then start it manually.
+ First follow the configuration here: https://docs.huihoo.com/apache/kafka/confluent/4.0/control-center/docs/installation/installing-control-center.html
+
+Then start it:
+
+```./bin/control-center-start etc/confluent-control-center/control-center.properties```
+
+
+
 ### Example 0 - Build and run the app:
 
 1. Check out, build, run:
@@ -339,4 +366,33 @@ All other changes in this exercise is refactoring from json to avro.
    
 ```mvn install -Dmaven.test.skip=true```
 
-2. 
+2. Run OrderDetailsService, OrderService:
+
+```mvn exec:java -Dexec.mainClass=com.entrpn.examples.kafka.streams.microservices.OrdersService "-Dexec.args=localhost:9092 http://localhost:8081 localhost 26601" -f pom.xml```
+
+```mvn exec:java -Dexec.mainClass=com.entrpn.examples.kafka.streams.microservices.OrderDetailsService "-Dexec.args=localhost:9092 http://localhost:8081" -f pom.xml```
+
+3. Run ConsumerTest:
+
+```mvn exec:java -Dexec.mainClass=com.entrpn.examples.kafka.streams.microservices.util.ConsumerTest -f pom.xml```
+
+4. Create an order via CURL
+
+```curl -d '{"id":"545454","customerId":"1","state":"CREATED","product":"JUMPERS","quantity":"2","price":"12.99"}' -X POST http://10.70.29.54:26601/v1/orders --header "Content-Type: application/json"```
+
+The output should look like:
+
+```text
+[2019-10-04 11:10:46,900] INFO [com.entrpn.examples.kafka.streams.microservices.util.ConsumerTest.main()] key: 545454 (com.entrpn.examples.kafka.streams.microservices.util.ConsumerTest)
+[2019-10-04 11:10:46,900] INFO [com.entrpn.examples.kafka.streams.microservices.util.ConsumerTest.main()] This is an Order record (com.entrpn.examples.kafka.streams.microservices.util.ConsumerTest)
+[2019-10-04 11:10:46,900] INFO [com.entrpn.examples.kafka.streams.microservices.util.ConsumerTest.main()] customerId: 1 (com.entrpn.examples.kafka.streams.microservices.util.ConsumerTest)
+[2019-10-04 11:10:46,901] INFO [com.entrpn.examples.kafka.streams.microservices.util.ConsumerTest.main()] key: 545454 (com.entrpn.examples.kafka.streams.microservices.util.ConsumerTest)
+[2019-10-04 11:10:46,901] INFO [com.entrpn.examples.kafka.streams.microservices.util.ConsumerTest.main()] this is an OrderValidation record (com.entrpn.examples.kafka.streams.microservices.util.ConsumerTest)
+[2019-10-04 11:10:46,901] INFO [com.entrpn.examples.kafka.streams.microservices.util.ConsumerTest.main()] Check Type: ORDER_DETAILS_CHECK (com.entrpn.examples.kafka.streams.microservices.util.ConsumerTest)
+```
+
+Bonus: Install command center (look at the section above "How To Install Confluent CLI") and view the messages and the schema.
+
+![Messages](images/messages.png)
+
+![Schema](images/schema.png)

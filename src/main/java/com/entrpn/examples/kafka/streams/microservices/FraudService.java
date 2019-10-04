@@ -3,7 +3,6 @@ package com.entrpn.examples.kafka.streams.microservices;
 import com.entrpn.examples.kafka.streams.microservices.util.MicroserviceUtils;
 import com.entrpn.examples.kafka.streams.microservices.util.StreamsUtils;
 import io.confluent.examples.streams.avro.microservices.*;
-import io.confluent.kafka.streams.serdes.avro.SpecificAvroSerde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
@@ -85,7 +84,7 @@ public class FraudService implements Service {
                             return new OrderValue(order, (total.getValue()) + order.getQuantity() * order.getPrice());
                         },
                         (k, a, b) -> simpleMerge(a, b),
-                        Materialized.with(null, new SpecificAvroSerde<>()));
+                        Materialized.with(null, Schemas.ORDER_VALUE_SERDE));
 
         // Ditch the windowing and rekey
         final KStream<String, OrderValue> ordersWithTotals = aggregate

@@ -4,6 +4,7 @@ import com.entrpn.examples.kafka.streams.microservices.Schemas;
 
 import io.confluent.examples.streams.avro.microservices.Order;
 import io.confluent.examples.streams.avro.microservices.OrderValidation;
+import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
 import io.confluent.kafka.streams.serdes.avro.SpecificAvroSerde;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -15,6 +16,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Properties;
 
 public class ConsumerTest {
@@ -62,8 +64,14 @@ public class ConsumerTest {
         consumerConfig.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
         consumerConfig.put(ConsumerConfig.CLIENT_ID_CONFIG, "order-dtails-service-consumer");
 
+        Schemas.configureSerdesWithSchemaRegistryUrl("http://localhost:8081");
+
+        SpecificAvroSerde serde = new SpecificAvroSerde();
+        serde.configure(
+                Collections.singletonMap(AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, "http://localhost:8081"), false);
+
         return new KafkaConsumer(consumerConfig,
                 Serdes.String().deserializer(),
-                new SpecificAvroSerde().deserializer());
+                serde.deserializer());
     }
 }

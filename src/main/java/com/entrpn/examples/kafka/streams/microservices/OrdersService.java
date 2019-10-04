@@ -125,6 +125,8 @@ public class OrdersService implements Service {
         final String restHostname = args.length > 2 ? args[2] : "localhost";
         final String restPort = args.length > 3 ? args[3] : null;
 
+        Schemas.configureSerdesWithSchemaRegistryUrl(schemaRegistryUrl);
+
         final OrdersService service = new OrdersService(restHostname, restPort == null ? 0 : Integer.valueOf(restPort));
         service.start(bootstrapServers, "/tmp/kafka-streams");
 

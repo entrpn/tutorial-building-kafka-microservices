@@ -41,9 +41,7 @@ public class MicroserviceUtils {
 
         log.info("Connecting to Kafka cluster via bootstrap servers " + bootstrapServers);
         log.info("Connecting to Confluent schema registry at " + schemaRegistryUrl);
-        log.error("TODO - uncomment schema registry line in MicroserviceUtils.parseArgsAndConfigure");
-        // TODO
-        //Schemas.configureSerdesWithSchemaRegistryUrl(schemaRegistryUrl);
+        Schemas.configureSerdesWithSchemaRegistryUrl(schemaRegistryUrl);
         return bootstrapServers;
     }
 

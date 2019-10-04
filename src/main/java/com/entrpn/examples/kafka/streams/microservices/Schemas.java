@@ -6,10 +6,16 @@ import io.confluent.kafka.streams.serdes.avro.SpecificAvroSerde;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG;
+
 public class Schemas {
+
+    public static String schemaRegistryUrl = "";
+    public static SpecificAvroSerde<OrderValue> ORDER_VALUE_SERDE = new SpecificAvroSerde<>();
 
     public static class Topic<K, V> {
         private final String name;
@@ -66,6 +72,21 @@ public class Schemas {
             ORDERS_ENRICHED = new Topic("orders-enriched", Serdes.String(), new SpecificAvroSerde());
             WAREHOUSE_INVENTORY = new Topic("warehouse-inventory", new ProductTypeSerde(), Serdes.Integer());
         }
+    }
 
+    public static void configureSerdesWithSchemaRegistryUrl(final String url) {
+        Topics.createTopics(); // wipe cached schema registry
+        for (final Topic<?, ?> topic : Topics.ALL.values()) {
+            configure(topic.getKeySerde(), url);
+            configure(topic.getValueSerde(), url);
+        }
+        configure(ORDER_VALUE_SERDE, url);
+        schemaRegistryUrl = url;
+    }
+
+    private static void configure(final Serde<?> serde, final String url) {
+        if (serde instanceof SpecificAvroSerde) {
+            serde.configure(Collections.singletonMap(SCHEMA_REGISTRY_URL_CONFIG, url), false);
+        }
     }
 }
